@@ -4,7 +4,7 @@ create extension if not exists pgcrypto;
 
 create type public.staff_role as enum ('secretary','priest','diocese');
 create type public.record_status as enum ('draft','pending','returned','approved');
-create type public.sacrament_kind as enum ('baptism','confirmation','marriage','death');
+create type public.sacrament_kind as enum ('baptism','communion','confirmation','matrimony');
 
 create table public.parishes (
   id uuid primary key default gen_random_uuid(),
@@ -91,7 +91,7 @@ create function public.save_record(
 ) returns uuid language plpgsql security definer set search_path = '' as $$
 declare v_record public.records; v_id uuid;
 begin
-  if public.my_staff_role() <> 'secretary' or public.my_parish_id() is distinct from p_parish_id then
+  if public.my_staff_role() not in ('secretary','priest') or public.my_parish_id() is distinct from p_parish_id then
     raise exception 'Not authorized';
   end if;
   if length(trim(coalesce(p_subject_name,''))) < 2 or p_event_date is null or jsonb_typeof(p_details) is distinct from 'object' then
@@ -118,7 +118,7 @@ create function public.submit_record(p_id uuid) returns void language plpgsql se
 declare v_record public.records;
 begin
   select * into v_record from public.records where id=p_id for update;
-  if not found or public.my_staff_role() <> 'secretary' or v_record.parish_id is distinct from public.my_parish_id() or v_record.status not in ('draft','returned') then raise exception 'Not authorized to submit'; end if;
+  if not found or public.my_staff_role() not in ('secretary','priest') or v_record.parish_id is distinct from public.my_parish_id() or v_record.status not in ('draft','returned') then raise exception 'Not authorized to submit'; end if;
   update public.records set status='pending',submitted_at=now(),updated_at=now(),return_reason=null where id=p_id returning * into v_record;
   insert into public.record_events(record_id,actor_id,action,snapshot) values(p_id,auth.uid(),'submitted',to_jsonb(v_record));
 end $$;
