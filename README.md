@@ -31,3 +31,7 @@ Push this folder to a private GitHub repository. Connect that repository to Clou
 - There is no public registration or public search. Staff accounts are provisioned manually. Do not put credentials or real records in GitHub.
 - Supabase Free may pause inactive projects and does not provide scheduled database backups. Use invented test data during this stage. Confirm data location, privacy obligations, operational support and tested backups before real use.
 - Keep the Diocese as owner of the GitHub, Supabase and Cloudflare accounts. Remove staff access promptly when assignments change.
+
+## Current pilot hosting
+
+The GitHub Actions workflow builds the app against the **Sacramental register** Supabase pilot project and publishes to GitHub Pages. In this repository, open **Settings → Pages**, select **GitHub Actions** as the build and deployment source, then open **Actions** to verify the `Build and publish pilot` run. The public site displays only a staff sign-in screen; records remain protected by Supabase access policies. No staff accounts or real records should be added until the pilot rules are approved.
