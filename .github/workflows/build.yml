@@ -1,7 +1,13 @@
-name: Build pilot
+name: Build and publish pilot
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,5 +20,19 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_SUPABASE_URL: https://example.supabase.co
-          VITE_SUPABASE_ANON_KEY: example-build-only
+          VITE_SUPABASE_URL: https://canpvjrtjxrcrujkbhka.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_u03MEr9DccVdyUJdpMfTVw_NLmOj9Gw
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: dist
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
