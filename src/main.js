@@ -4,26 +4,40 @@ import './style.css';
 const root = document.querySelector('#app');
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const arrivingFromInvite = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite';
 const db = url && key ? createClient(url, key) : null;
 const kinds = ['baptism','confirmation','marriage','death'];
-let profile = null, parish = null, records = [], current = null, view = 'list', message = '';
+let profile = null, parish = null, records = [], current = null, view = arrivingFromInvite ? 'password' : 'list', message = '';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label = v => String(v || '').replace(/^./, c => c.toUpperCase());
 const date = v => v ? new Date(`${v}T00:00:00`).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}) : '—';
 function flash(text) { message = text; render(); }
 function shell(body) {
-  root.innerHTML = `<div class="app"><aside class="rail"><div class="brand"><span class="mark">✝</span><div>Diocesan<br><strong>Sacrament Registry</strong></div></div><div class="rail-note">${esc(parish?.name || 'Central office')}</div><nav><button class="nav ${view==='list'?'active':''}" id="records">Registers</button>${profile?.role==='secretary'?'<button class="nav" id="new">New entry</button>':''}</nav><div class="rail-bottom"><span>${esc(profile?.full_name)}<small>${esc(label(profile?.role))}</small></span><button id="logout" class="text-button">Sign out</button></div></aside><main class="main">${message?`<div class="notice" role="status">${esc(message)}<button id="dismiss" aria-label="Dismiss">×</button></div>`:''}${body}</main></div>`;
+  root.innerHTML = `<div class="app"><aside class="rail"><div class="brand"><span class="mark">✝</span><div>Diocesan<br><strong>Sacrament Registry</strong></div></div><div class="rail-note">${esc(parish?.name || 'Central office')}</div><nav><button class="nav ${view==='list'?'active':''}" id="records">Registers</button>${profile?.role==='secretary'?'<button class="nav" id="new">New entry</button>':''}<button class="nav ${view==='password'?'active':''}" id="password-nav">Set password</button></nav><div class="rail-bottom"><span>${esc(profile?.full_name)}<small>${esc(label(profile?.role))}</small></span><button id="logout" class="text-button">Sign out</button></div></aside><main class="main">${message?`<div class="notice" role="status">${esc(message)}<button id="dismiss" aria-label="Dismiss">×</button></div>`:''}${body}</main></div>`;
   document.querySelector('#records').onclick = () => { current=null; view='list'; render(); };
   document.querySelector('#new')?.addEventListener('click',()=>{ current=null; view='form'; render(); });
+  document.querySelector('#password-nav').onclick = () => { view='password'; render(); };
   document.querySelector('#logout').onclick = () => db.auth.signOut();
   document.querySelector('#dismiss')?.addEventListener('click',()=>{message='';render();});
 }
 function render() {
   if (!db) { root.innerHTML = `<div class="auth-wrap"><div class="auth-card"><span class="mark">✝</span><h1>Diocesan Sacrament Registry</h1><p>Project setup is required. Add the Supabase URL and publishable key to your environment file, then restart the app.</p><a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer">Open Supabase</a></div></div>`; return; }
   if (!profile) return login();
+  if (view==='password') return passwordForm();
   if (view==='form' && profile.role==='secretary') return form();
   if (view==='detail' && current) return detail();
   list();
+}
+function passwordForm() {
+  shell(`<header class="page-head"><div><p class="eyebrow">STAFF ACCOUNT</p><h1>Set your password</h1><p>Choose a password to use when you sign in again.</p></div></header><form id="password-form" class="panel entry-form"><label>New password<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label><div class="actions"><button class="primary" type="submit">Save password</button><span id="password-error" class="error" role="alert"></span></div></form>`);
+  document.querySelector('#password-form').onsubmit = async e => {
+    e.preventDefault(); const fd=new FormData(e.target), password=fd.get('password');
+    if(password!==fd.get('confirm')) { document.querySelector('#password-error').textContent='Passwords do not match.'; return; }
+    const btn=e.target.querySelector('button[type=submit]'); btn.disabled=true;
+    const {error}=await db.auth.updateUser({password});
+    if(error) { document.querySelector('#password-error').textContent=error.message; btn.disabled=false; return; }
+    view='list'; message='Password saved. You can now sign in with your email and password.'; render();
+  };
 }
 function login() {
   root.innerHTML = `<div class="auth-wrap"><form class="auth-card" id="login"><span class="mark">✝</span><p class="eyebrow">STAFF ACCESS</p><h1>Diocesan Sacrament Registry</h1><p>Sign in with the account assigned to you by the diocesan office.</p><label>Email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="primary">Sign in</button><p class="error" id="error" role="alert"></p></form></div>`;
