@@ -7,3 +7,5 @@ body::after{animation:none;transition:none}
 @media print{body::after{position:fixed;opacity:.05}}
 
 .mark.diocesan-logo{object-fit:contain;background:#fff;padding:2px;border-radius:8px;width:52px;height:64px}.auth-card .diocesan-logo{width:72px;height:90px}
+
+.advanced-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:24px}.toolbar{padding:0 24px 20px;flex-wrap:wrap}.history-item{padding:16px 0;border-bottom:1px solid #eee}.history-item p{margin:8px 0;font-size:.85rem;overflow-wrap:anywhere}.detail-grid strong{overflow-wrap:anywhere}.notes{margin-top:20px}progress{width:100%;height:20px}#import-preview{max-height:420px;overflow:auto}@media(max-width:800px){.advanced-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.advanced-filters{grid-template-columns:1fr}}@media print{.rail,.notice,.actions,.back{display:none}.main{padding:0}}
