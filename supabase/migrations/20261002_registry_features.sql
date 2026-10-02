@@ -7,7 +7,7 @@ language plpgsql security definer set search_path='' as $$
 begin
   if coalesce(public.my_staff_role()::text,'') not in ('secretary','priest') then raise exception 'Not authorized'; end if;
   return query select r.id,r.subject_name,r.event_date,r.status from public.records r
-  where r.parish_id=public.my_parish_id() and r.kind=p_kind and (
+  where r.parish_id=public.my_parish_id() and (case when r.kind::text='marriage' then 'matrimony' else r.kind::text end)=(case when p_kind::text='marriage' then 'matrimony' else p_kind::text end) and (
     (lower(regexp_replace(trim(r.subject_name),'\s+',' ','g'))=lower(regexp_replace(trim(p_subject_name),'\s+',' ','g')) and r.event_date=p_event_date)
     or (nullif(trim(p_register_number),'') is not null and lower(trim(r.register_number))=lower(trim(p_register_number)) and lower(trim(coalesce(r.register_volume,'')))=lower(trim(coalesce(p_register_volume,''))))
   ) limit 20;
